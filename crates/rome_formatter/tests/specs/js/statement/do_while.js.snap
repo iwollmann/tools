@@ -14,5 +14,7 @@ while (something)
 # Output
 do {
 	var foo = 4;
-} while (something);
+}
+
+while (something);
 

@@ -18,11 +18,17 @@ impl ToFormatElement for JsPropertyClassMember {
 			empty_element()
 		};
 
+		let semicolon = if let Some(semicolon) = self.semicolon_token() {
+			formatter.format_token(&semicolon)?
+		} else {
+			token(";")
+		};
+
 		Ok(format_elements![
 			static_token,
 			formatter.format_node(self.name()?)?,
 			init,
-			token(";")
+			semicolon
 		])
 	}
 }

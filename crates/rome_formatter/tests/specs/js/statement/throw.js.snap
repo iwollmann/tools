@@ -11,5 +11,6 @@ throw false
 ---
 # Output
 throw "Something";
+
 throw false;
 

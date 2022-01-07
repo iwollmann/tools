@@ -18,9 +18,12 @@ switch (key) {
 ---
 # Output
 switch (key) {
+
 	case value:
 		break;
+
 	default:
 		break;
+
 }
 

@@ -6,9 +6,15 @@ use rslint_parser::ast::{JsVariableDeclaration, JsVariableDeclarations, JsVariab
 
 impl ToFormatElement for JsVariableStatement {
 	fn to_format_element(&self, formatter: &Formatter) -> FormatResult<FormatElement> {
+		let semicolon = if let Some(semicolon) = self.semicolon_token() {
+			formatter.format_token(&semicolon)?
+		} else {
+			token(";")
+		};
+
 		Ok(format_elements![
 			formatter.format_node(self.declarations()?)?,
-			token(";"),
+			semicolon,
 		])
 	}
 }

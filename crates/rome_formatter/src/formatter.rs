@@ -1,9 +1,11 @@
+use crate::format_element::empty_line;
 use crate::printer::Printer;
 use crate::{
-	concat_elements, format_elements, token, FormatElement, FormatOptions, FormatResult, Formatted,
-	ToFormatElement,
+	concat_elements, format_elements, hard_line_break, token, FormatElement, FormatOptions,
+	FormatResult, Formatted, ToFormatElement,
 };
-use rome_rowan::SyntaxElement;
+use rome_rowan::api::SyntaxTrivia;
+use rome_rowan::{Language, SyntaxElement};
 use rslint_parser::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken};
 
 /// Handles the formatting of a CST and stores the options how the CST should be formatted (user preferences).
@@ -62,14 +64,14 @@ impl Formatter {
 	/// Helper function that returns what should be printed before the node that work on
 	/// the non-generic [SyntaxNode] to avoid unrolling the logic for every [AstNode] type.
 	fn format_node_start(&self, _node: &SyntaxNode) -> FormatElement {
-		// TODO: Set the marker for the start source map location, add leading comments, ...
+		// TODO: Set the marker for the start source map location, ...
 		concat_elements(vec![])
 	}
 
 	/// Helper function that returns what should be printed after the node that work on
 	/// the non-generic [SyntaxNode] to avoid unrolling the logic for every [AstNode] type.
 	fn format_node_end(&self, _node: &SyntaxNode) -> FormatElement {
-		// TODO: Sets the marker for the end source map location, add trailing comments, ...
+		// TODO: Sets the marker for the end source map location, ...
 		concat_elements(vec![])
 	}
 
@@ -100,7 +102,11 @@ impl Formatter {
 	/// assert_eq!(Ok(token("'abc'")), result)
 	/// ```
 	pub fn format_token(&self, syntax_token: &SyntaxToken) -> FormatResult<FormatElement> {
-		Ok(token(syntax_token.text_trimmed()))
+		let mut elements = Vec::new();
+		print_trivia(&mut elements, syntax_token.leading_trivia());
+		elements.push(token(syntax_token.text_trimmed()));
+		print_trivia(&mut elements, syntax_token.trailing_trivia());
+		Ok(concat_elements(elements))
 	}
 
 	/// Formats each child and returns the result as a list.
@@ -133,11 +139,12 @@ impl Formatter {
 		for (index, element) in list.elements().enumerate() {
 			let node = self.format_node(element.node()?)?;
 			if let Some(separator) = element.trailing_separator()? {
-				let formatted_separator = self.format_token(&separator)?;
 				if index == list.len() - 1 {
-					result.push(node)
+					print_trivia(&mut result, separator.leading_trivia());
+					result.push(node);
+					print_trivia(&mut result, separator.trailing_trivia());
 				} else {
-					result.push(format_elements![node, formatted_separator]);
+					result.push(format_elements![node, self.format_token(&separator)?]);
 				}
 			} else {
 				result.push(node);
@@ -163,5 +170,30 @@ impl Formatter {
 			}
 			SyntaxElement::Token(syntax_token) => token(syntax_token.text()),
 		}))
+	}
+}
+
+fn print_trivia<L: Language>(elements: &mut Vec<FormatElement>, trivia: SyntaxTrivia<L>) {
+	for piece in trivia.pieces() {
+		if let Some(whitespace) = piece.as_whitespace() {
+			let newlines = whitespace
+				.text()
+				.chars()
+				.filter(|char| *char == '\n')
+				.count();
+
+			if newlines > 1 {
+				elements.push(empty_line());
+			}
+		}
+
+		if let Some(comments) = piece.as_comments() {
+			let comments_text = comments.text();
+			let is_single_line = comments_text.starts_with("//");
+			elements.push(token(comments_text));
+			if is_single_line {
+				elements.push(hard_line_break());
+			}
+		}
 	}
 }

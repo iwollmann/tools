@@ -12,10 +12,16 @@ impl ToFormatElement for JsBreakStatement {
 			empty_element()
 		};
 
+		let semicolon = if let Some(semicolon) = self.semicolon_token() {
+			formatter.format_token(&semicolon)?
+		} else {
+			token(";")
+		};
+
 		Ok(format_elements![
 			formatter.format_token(&self.break_token()?)?,
 			label,
-			token(";")
+			semicolon,
 		])
 	}
 }

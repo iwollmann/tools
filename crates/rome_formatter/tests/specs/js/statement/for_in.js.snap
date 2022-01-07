@@ -12,6 +12,7 @@ for (aVeryLongVariableNameToEnforceLineBreaksaVeryLongVariableNameToEnforceLineB
 ---
 # Output
 for (a in b) {}
+
 for (
 	aVeryLongVariableNameToEnforceLineBreaksaVeryLongVariableNameToEnforceLineBreaks
 	in

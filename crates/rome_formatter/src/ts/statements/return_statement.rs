@@ -12,7 +12,11 @@ impl ToFormatElement for JsReturnStatement {
 			tokens.push(formatter.format_node(argument)?);
 		}
 
-		tokens.push(token(";"));
+		if let Some(semicolon) = self.semicolon_token() {
+			tokens.push(formatter.format_token(&semicolon)?);
+		} else {
+			tokens.push(token(";"));
+		}
 
 		Ok(concat_elements(tokens))
 	}
