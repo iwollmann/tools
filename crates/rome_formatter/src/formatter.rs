@@ -1,7 +1,7 @@
 use crate::printer::Printer;
 use crate::{
-	concat_elements, format_elements, hard_line_break, token, FormatElement, FormatOptions,
-	FormatResult, Formatted, ToFormatElement,
+	concat_elements, format_elements, hard_line_break, soft_line_break_or_space, space_token,
+	token, FormatElement, FormatOptions, FormatResult, Formatted, ToFormatElement,
 };
 use rome_rowan::api::SyntaxTrivia;
 use rome_rowan::{Language, SyntaxElement};
@@ -175,11 +175,22 @@ impl Formatter {
 fn print_trivia<L: Language>(elements: &mut Vec<FormatElement>, trivia: SyntaxTrivia<L>) {
 	for piece in trivia.pieces() {
 		if let Some(comments) = piece.as_comments() {
-			let comments_text = comments.text();
+			let comments_text = comments.text().trim();
 			let is_single_line = comments_text.starts_with("//");
-			elements.push(token(comments_text));
-			if is_single_line {
+			let is_multi_line = !is_single_line && comments_text.contains("\n");
+
+			if is_multi_line {
 				elements.push(hard_line_break());
+			} else {
+				elements.push(space_token());
+			}
+
+			elements.push(token(comments_text));
+
+			if is_single_line || is_multi_line {
+				elements.push(hard_line_break());
+			} else {
+				elements.push(soft_line_break_or_space());
 			}
 		}
 	}

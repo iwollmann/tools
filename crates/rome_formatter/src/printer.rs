@@ -115,7 +115,9 @@ impl Printer {
 	) -> Vec<PrintElementCall<'a>> {
 		match element {
 			FormatElement::Space => {
-				self.state.pending_spaces += 1;
+				if !self.state.empty_line && self.state.pending_spaces == 0 {
+					self.state.pending_spaces += 1;
+				}
 				vec![]
 			}
 			FormatElement::Empty => vec![],
@@ -133,7 +135,7 @@ impl Printer {
 
 				// Print pending spaces
 				if self.state.pending_spaces > 0 {
-					self.print_str(" ".repeat(self.state.pending_spaces as usize).as_str());
+					self.print_str(" ".repeat(self.state.pending_spaces.into()).as_str());
 					self.state.pending_spaces = 0;
 				}
 
@@ -285,10 +287,12 @@ impl Printer {
 				self.state.generated_line += 1;
 				self.state.generated_column = 0;
 				self.state.line_width = 0;
+				self.state.empty_line = true;
 			} else {
 				self.state.buffer.push(char);
 				self.state.generated_index += 1;
 				self.state.generated_column += 1;
+				self.state.empty_line = false;
 
 				let char_width = if char == '\t' {
 					self.options.tab_width as usize
@@ -310,6 +314,7 @@ struct PrinterState {
 	buffer: String,
 	pending_indent: u16,
 	pending_spaces: u16,
+	empty_line: bool,
 	generated_index: usize,
 	generated_line: usize,
 	generated_column: usize,

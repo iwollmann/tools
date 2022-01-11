@@ -53,7 +53,7 @@ romise.then(result => result.veryLongVariable.veryLongPropertyName > someOtherVa
 # Output
 const testResults = results.testResults.map((testResult) => formatResult(testResult, formatter, reporter));
 it("mocks regexp instances", () => {
-	expect(// () => moduleMocker.generateFromMetadata(moduleMocker.getMetadata(/a/)),
+	expect( // () => moduleMocker.generateFromMetadata(moduleMocker.getMetadata(/a/)),
 	).not.toThrow();
 });
 expect(() => asyncRequest({ url: "/test-endpoint" }));
