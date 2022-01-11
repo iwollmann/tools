@@ -1,4 +1,3 @@
-use crate::format_element::empty_line;
 use crate::printer::Printer;
 use crate::{
 	concat_elements, format_elements, hard_line_break, token, FormatElement, FormatOptions,
@@ -175,18 +174,6 @@ impl Formatter {
 
 fn print_trivia<L: Language>(elements: &mut Vec<FormatElement>, trivia: SyntaxTrivia<L>) {
 	for piece in trivia.pieces() {
-		if let Some(whitespace) = piece.as_whitespace() {
-			let newlines = whitespace
-				.text()
-				.chars()
-				.filter(|char| *char == '\n')
-				.count();
-
-			if newlines > 1 {
-				elements.push(empty_line());
-			}
-		}
-
 		if let Some(comments) = piece.as_comments() {
 			let comments_text = comments.text();
 			let is_single_line = comments_text.starts_with("//");

@@ -1,4 +1,4 @@
-use crate::format_element::{ConditionalGroupContent, Group, GroupPrintMode, Line, LineMode};
+use crate::format_element::{ConditionalGroupContent, Group, GroupPrintMode, LineMode};
 use crate::{FormatElement, FormatOptions, Formatted, IndentStyle};
 
 /// Options that affect how the [Printer] prints the format tokens
@@ -177,13 +177,8 @@ impl Printer {
 				vec![]
 			}
 
-			FormatElement::Line(Line { mode }) => {
-				if *mode == LineMode::Empty && !self.state.empty_line {
-					self.print_str("\n\n");
-				} else {
-					self.print_str("\n");
-				}
-
+			FormatElement::Line { .. } => {
+				self.print_str("\n");
 				self.state.pending_spaces = 0;
 				self.state.pending_indent = args.indent;
 				vec![]
@@ -249,7 +244,7 @@ impl Printer {
 					}
 					// We want a flat structure, so omit soft line wraps
 					LineMode::Soft => vec![],
-					LineMode::Hard | LineMode::Empty => return Err(LineBreakRequiredError),
+					LineMode::Hard => return Err(LineBreakRequiredError),
 				}
 			}
 
@@ -290,12 +285,10 @@ impl Printer {
 				self.state.generated_line += 1;
 				self.state.generated_column = 0;
 				self.state.line_width = 0;
-				self.state.empty_line = true;
 			} else {
 				self.state.buffer.push(char);
 				self.state.generated_index += 1;
 				self.state.generated_column += 1;
-				self.state.empty_line = false;
 
 				let char_width = if char == '\t' {
 					self.options.tab_width as usize
@@ -317,7 +310,6 @@ struct PrinterState {
 	buffer: String,
 	pending_indent: u16,
 	pending_spaces: u16,
-	empty_line: bool,
 	generated_index: usize,
 	generated_line: usize,
 	generated_column: usize,

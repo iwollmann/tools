@@ -12,9 +12,7 @@ with (   b)
 
 ---
 # Output
-with (b)
-
-{
+with (b) {
 	5;
 }
 

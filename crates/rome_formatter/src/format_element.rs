@@ -79,31 +79,6 @@ pub const fn hard_line_break() -> FormatElement {
 	FormatElement::Line(Line::new(LineMode::Hard))
 }
 
-/// Print an empty line by inserting one or two hard line breaks depending on the context.
-/// Similarly to a hard break an empty line forces any enclosing [Group] to be printed
-/// over multiple lines.
-///
-/// ## Examples
-///
-/// It forces an empty line, even if the enclosing [Group] would otherwise fit on a single line.
-/// ```
-/// use rome_formatter::{group_elements, format_element, format_elements, token, FormatOptions, soft_line_break, empty_line};
-///
-/// let elements = group_elements(format_elements![
-///   token("a,"),
-///   empty_line(), // emits two lines breaks
-///   token("b"),
-///   soft_line_break(),
-///   empty_line(), // emits a single line break since it's already on an empty line
-/// ]);
-///
-/// assert_eq!("a,\n\nb\n\n", format_element(&elements, FormatOptions::default()).code());
-/// ```
-#[inline]
-pub const fn empty_line() -> FormatElement {
-	FormatElement::Line(Line::new(LineMode::Empty))
-}
-
 /// A line break if the enclosing [Group] doesn't fit on a single line, a space otherwise.
 ///
 /// ## Examples
@@ -655,8 +630,6 @@ pub enum LineMode {
 	Soft,
 	/// See [hard_line_break] for documentation.
 	Hard,
-	/// See [empty_line] for documentation.
-	Empty,
 }
 
 /// Increases the indention by one; see [indented_with_soft_break] and [indented_with_hard_break].
