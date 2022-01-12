@@ -58,11 +58,11 @@ const FOLLOWS_LET: TokenSet =
 /// Consume an explicit semicolon, or try to automatically insert one,
 /// or add an error to the parser if there was none and it could not be inserted
 // test semicolons
-// let foo = bar;
-// let foo = b;
-// let foo;
-// let foo
-// let foo
+// let foo1 = bar;
+// let foo2 = b;
+// let foo3;
+// let foo4
+// let foo5
 // function foo() { return true }
 pub fn semi(p: &mut Parser, err_range: Range<usize>) -> bool {
 	// test_err semicolons_err
@@ -484,6 +484,7 @@ pub fn parse_empty_statement(p: &mut Parser) -> ParsedSyntax {
 // {}
 // {{{{}}}}
 // { foo = bar; }
+// let a; { let a; }
 /// A block statement consisting of statements wrapped in curly brackets.
 pub(crate) fn parse_block_stmt(p: &mut Parser) -> ParsedSyntax {
 	parse_block_impl(p, JS_BLOCK_STATEMENT)
@@ -494,6 +495,7 @@ pub(super) fn parse_block_impl(p: &mut Parser, block_kind: JsSyntaxKind) -> Pars
 	if !p.at(T!['{']) {
 		return Absent;
 	}
+	p.state.bindings_blocks.enter_block();
 
 	let m = p.start();
 	p.bump(T!['{']);
@@ -511,6 +513,7 @@ pub(super) fn parse_block_impl(p: &mut Parser, block_kind: JsSyntaxKind) -> Pars
 	if let Some(strict_snapshot) = strict_snapshot {
 		EnableStrictMode::restore(&mut p.state, strict_snapshot);
 	}
+	p.state.bindings_blocks.leave_block();
 
 	Present(m.complete(p, block_kind))
 }
@@ -597,17 +600,17 @@ impl ParseNodeList for DirectivesList {
 // "use strict"; // not a directive
 // function test() {
 // 	'use strict';
-// 	let a = 10;
+// 	let b = 10;
 // 	'use strict'; // not a directive
 // }
 // (function () {
 // 	"use strict";
-// 	let a = 10;
+// 	let c = 10;
 // 	"use strict"; // not a directive
 // });
 // let b = () => {
 // 	"use strict";
-// 	let a = 10;
+// 	let e = 10;
 // 	"use strict";  // not a directive
 // }
 // {
@@ -775,11 +778,11 @@ pub(crate) fn is_at_variable_declarations(p: &Parser) -> bool {
 // test var_decl
 // var a = 5;
 // let { foo, bar } = 5;
-// let bar, foo;
-// const a = 5;
-// const { foo: [bar], baz } = {};
-// let foo = "lorem", bar = "ipsum", third = "value", fourth = 6;
-// var a, a, a, a, a;
+// let bar2, foo2;
+// const b = 5;
+// const { foo5: [bar11], baz6 } = {};
+// let foo6 = "lorem", bar7 = "ipsum", third8 = "value", fourth = 6;
+// var q, w, e, r, t;
 //
 // test_err variable_declaration_statement_err
 // let a, { a } = { a: 10 }

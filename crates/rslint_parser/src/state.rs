@@ -1,5 +1,5 @@
 use crate::{FileKind, Parser, Syntax};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut, Range};
 
 /// State kept by the parser while parsing.
@@ -39,11 +39,61 @@ pub struct ParserState {
 	/// If set, the parser reports bindings with identical names. The option stores the name of the
 	/// node that disallows duplicate bindings, for example `let`, `const` or `import`.
 	pub duplicate_binding_parent: Option<&'static str>,
+	/// Tracks bindings inside a scope
+	pub bindings_blocks: BindingsBlock,
 	pub name_map: HashMap<String, Range<usize>>,
 	/// Whether the parser is in a conditional expr (ternary expr)
 	in_cond_expr: bool,
 	pub(crate) no_recovery: bool,
 	in_binding_list_for_signature: bool,
+}
+
+/// Structure to track the bindings found inside each block
+#[derive(Debug, Clone, PartialEq)]
+pub struct BindingsBlock {
+	/// A series of blocks. Each block tracks the bindings with their identifier name and their range
+	/// Blocks are FILO: First In, Last Out
+	blocks: VecDeque<HashMap<String, Range<usize>>>,
+}
+
+impl Default for BindingsBlock {
+	fn default() -> Self {
+		let mut blocks = VecDeque::new();
+		blocks.push_front(HashMap::default());
+		Self { blocks }
+	}
+}
+
+impl BindingsBlock {
+	/// Tracks a new block
+	pub fn enter_block(&mut self) {
+		self.blocks.push_front(HashMap::default());
+	}
+
+	/// Removes the most recent block
+	pub fn leave_block(&mut self) {
+		self.blocks.pop_front();
+	}
+
+	/// Checks if the current block has a binding and return its range if one is found
+	pub fn has_binding(&mut self, identifier: String, range: Range<usize>) -> Option<Range<usize>> {
+		let block = self.get_current_block();
+		if let Some(block) = block {
+			if let Some(range) = block.get(&identifier) {
+				let range = range.clone();
+				Some(range)
+			} else {
+				block.insert(identifier, range);
+				None
+			}
+		} else {
+			None
+		}
+	}
+
+	fn get_current_block(&mut self) -> Option<&mut HashMap<String, Range<usize>>> {
+		self.blocks.front_mut()
+	}
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -73,6 +123,8 @@ impl Default for ParserState {
 			in_cond_expr: false,
 			no_recovery: false,
 			in_binding_list_for_signature: false,
+			in_default: false,
+			bindings_blocks: BindingsBlock::default(),
 		}
 	}
 }

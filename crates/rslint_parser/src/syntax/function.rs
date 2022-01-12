@@ -10,6 +10,7 @@ use crate::syntax::typescript::{ts_type_or_type_predicate_ann, ts_type_params};
 use crate::JsSyntaxFeature::TypeScript;
 use crate::ParsedSyntax::{Absent, Present};
 use crate::{Marker, Parser, SyntaxFeature};
+use rslint_errors::Span;
 use rslint_syntax::JsSyntaxKind::*;
 use rslint_syntax::{JsSyntaxKind, T};
 
@@ -43,6 +44,9 @@ use rslint_syntax::{JsSyntaxKind, T};
 //
 // test_err function_broken
 // function foo())})}{{{  {}
+//
+// test function_block_declaration
+// let a = 2; function f() { let a = 7; }
 pub(super) fn parse_function_statement(p: &mut Parser) -> ParsedSyntax {
 	let m = p.start();
 	parse_function(p, m, FunctionKind::Statement)
@@ -120,6 +124,21 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 		|p| {
 			let id = parse_binding(p);
 
+			if let Present(id) = id {
+				let identifier = String::from(id.text(guard));
+				let range = id.range(guard).as_range();
+				if let Some(other_range) =
+					guard.state.bindings_blocks.has_binding(identifier, range)
+				{
+					guard
+						.err_builder(&format!(
+							"The binding {} has been already declared",
+							id.text(guard)
+						))
+						.primary(other_range, "First declaration")
+						.secondary(id.range(guard).as_range(), "Second declaration");
+				}
+			}
 			if !kind.is_id_optional() {
 				id.or_add_diagnostic(p, |p, range| {
 					p.err_builder(

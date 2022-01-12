@@ -3,7 +3,6 @@
 use super::binding::parse_binding_pattern;
 use super::expr::parse_expr_or_assignment;
 use super::typescript::*;
-#[allow(deprecated)]
 use crate::parser::ParsedSyntax::{Absent, Present};
 use crate::parser::ParserProgress;
 use crate::state::{AllowObjectExpression, InFunction};
@@ -13,7 +12,6 @@ use crate::syntax::js_parse_error;
 use crate::syntax::js_parse_error::expected_binding;
 use crate::{JsSyntaxKind::*, *};
 
-#[allow(clippy::unnecessary_unwrap)]
 pub(super) fn parse_formal_param_pat(p: &mut Parser) -> ParsedSyntax {
 	if p.typescript() {
 		if let Some(modifier) = maybe_eat_incorrect_modifier(p) {

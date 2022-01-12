@@ -311,6 +311,15 @@ error[SyntaxError]: Declarations inside of a `let` declaration may not have dupl
   │     `a` is first declared here
 
 --
+error[SyntaxError]: The binding "a" has been already declared
+  ┌─ variable_declaration_statement_err.js:1:5
+  │
+1 │ let a, { a } = { a: 10 }
+  │     ^ First declaration here
+2 │ const a = 1, { a } = { a: 10 }
+  │       - Second declaration here
+
+--
 error[SyntaxError]: Declarations inside of a `const` declaration may not have duplicates
   ┌─ variable_declaration_statement_err.js:2:16
   │
@@ -320,11 +329,31 @@ error[SyntaxError]: Declarations inside of a `const` declaration may not have du
   │       `a` is first declared here
 
 --
+error[SyntaxError]: The binding "a" has been already declared
+  ┌─ variable_declaration_statement_err.js:1:5
+  │
+1 │ let a, { a } = { a: 10 }
+  │     ^ First declaration here
+2 │ const a = 1, { a } = { a: 10 }
+3 │ const a;
+  │       - Second declaration here
+
+--
 error[SyntaxError]: Const var declarations must have an initialized value
   ┌─ variable_declaration_statement_err.js:3:7
   │
 3 │ const a;
   │       ^ this variable needs to be initialized
+
+--
+error[SyntaxError]: The binding "a" has been already declared
+  ┌─ variable_declaration_statement_err.js:1:5
+  │
+1 │ let a, { a } = { a: 10 }
+  │     ^ First declaration here
+  ·
+4 │ let [a];
+  │      - Second declaration here
 
 --
 error[SyntaxError]: Object and Array patterns require initializers

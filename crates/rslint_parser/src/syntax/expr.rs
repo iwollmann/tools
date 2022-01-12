@@ -966,7 +966,7 @@ fn parse_primary_expression(p: &mut Parser) -> ParsedSyntax {
 		T![class] => {
 			// test class_expr
 			// let a = class {};
-			// let a = class foo {
+			// let c = class foo {
 			//  constructor() {}
 			// }
 			// foo[class {}]
@@ -1227,9 +1227,9 @@ pub(crate) fn is_nth_at_identifier(p: &Parser, n: usize) -> bool {
 /// A template literal such as "`abcd ${efg}`"
 // test template_literal
 // let a = `foo ${bar}`;
-// let a = ``;
-// let a = `${foo}`;
-// let a = `foo`;
+// let b = ``;
+// let c = `${foo}`;
+// let d = `foo`;
 
 // test_err template_literal
 // let a = `foo ${}`

@@ -227,11 +227,30 @@ error[SyntaxError]: expected an identifier, a string literal, a number literal, 
   │       ^ Expected an identifier, a string literal, a number literal, or a computed property here
 
 --
+error[SyntaxError]: The binding "bar" has been already declared
+  ┌─ object_property_binding_err.js:1:14
+  │
+1 │ let { foo: , bar } = {}
+  │              ^^^ First declaration here
+2 │ let { : bar = "test" } = {}
+  │         --- Second declaration here
+
+--
 error[SyntaxError]: expected an identifier, a member name, or a rest pattern but instead found ','
   ┌─ object_property_binding_err.js:3:7
   │
 3 │ let { , foo: bar } = {}
   │       ^ Expected an identifier, a member name, or a rest pattern here
+
+--
+error[SyntaxError]: The binding "bar" has been already declared
+  ┌─ object_property_binding_err.js:1:14
+  │
+1 │ let { foo: , bar } = {}
+  │              ^^^ First declaration here
+2 │ let { : bar = "test" } = {}
+3 │ let { , foo: bar } = {}
+  │              --- Second declaration here
 
 --
 let { foo: , bar } = {}

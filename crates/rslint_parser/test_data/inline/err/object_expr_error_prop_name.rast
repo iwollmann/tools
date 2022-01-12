@@ -132,6 +132,15 @@ error[SyntaxError]: expected a property, a shorthand property, a getter, a sette
   │           ^^^^^^^ Expected a property, a shorthand property, a getter, a setter, or a method here
 
 --
+error[SyntaxError]: The binding "a" has been already declared
+  ┌─ object_expr_error_prop_name.js:1:5
+  │
+1 │ let a = { /: 6, /: /foo/ }
+  │     ^ First declaration here
+2 │ let a = {{}}
+  │     - Second declaration here
+
+--
 error[SyntaxError]: expected a property, a shorthand property, a getter, a setter, or a method but instead found '{'
   ┌─ object_expr_error_prop_name.js:2:10
   │

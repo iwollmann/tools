@@ -439,6 +439,15 @@ error[SyntaxError]: rest element must be the last element
   │       ^^^^^^^ Move the rest element to the end of the pattern, right before the closing '}'
 
 --
+error[SyntaxError]: The binding "rest" has been already declared
+  ┌─ rest_property_binding_err.js:4:10
+  │
+4 │ let { ...rest, other_assignment } = a;
+  │          ^^^^ First declaration here
+5 │ let { ...rest, } = a;
+  │          ---- Second declaration here
+
+--
 error[SyntaxError]: rest element may not have a trailing comma
   ┌─ rest_property_binding_err.js:5:14
   │

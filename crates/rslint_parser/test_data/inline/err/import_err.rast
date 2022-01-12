@@ -478,6 +478,15 @@ error[SyntaxError]: expected `,` but instead found `+`
   │            ^ unexpected
 
 --
+error[SyntaxError]: The binding "a" has been already declared
+  ┌─ import_err.js:4:10
+  │
+4 │ import { a + b, d } from "c";
+  │          ^ First declaration here
+5 │ import { a, a } from "c";
+  │          - Second declaration here
+
+--
 error[SyntaxError]: Declarations inside of a `import` declaration may not have duplicates
   ┌─ import_err.js:5:13
   │
@@ -510,6 +519,16 @@ error[SyntaxError]: expected a string literal, or an identifier but instead foun
   │          ^^ Expected a string literal, or an identifier here
 
 --
+error[SyntaxError]: The binding "b" has been already declared
+  ┌─ import_err.js:3:13
+  │
+3 │ import * as b, { a, b } from "c";
+  │             ^ First declaration here
+  ·
+8 │ import { as b } from "c";
+  │             - Second declaration here
+
+--
 error[SyntaxError]: expected a default import, a namespace import, or a named import but instead found '4'
   ┌─ import_err.js:9:8
   │
@@ -535,6 +554,16 @@ error[SyntaxError]: Expected a semicolon or an implicit semicolon after a statem
   │          │    │
   │          │    An explicit or implicit semicolon is expected here...
   │          ...Which is required to end this statement
+
+--
+error[SyntaxError]: The binding "a" has been already declared
+   ┌─ import_err.js:4:10
+   │
+ 4 │ import { a + b, d } from "c";
+   │          ^ First declaration here
+   ·
+10 │ import a from 4;
+   │        - Second declaration here
 
 --
 error[SyntaxError]: expected a string literal but instead found '4'

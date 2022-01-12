@@ -213,6 +213,16 @@ error[SyntaxError]: expected an identifier, a member name, or a rest pattern but
   │       ^ Expected an identifier, a member name, or a rest pattern here
 
 --
+error[SyntaxError]: The binding "a" has been already declared
+  ┌─ object_shorthand_property_err.js:1:7
+  │
+1 │ let { a b } = c
+  │       ^ First declaration here
+2 │ let { = "test" } = c
+3 │ let { , a } = c
+  │         - Second declaration here
+
+--
 let { a b } = c
 let { = "test" } = c
 let { , a } = c

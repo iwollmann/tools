@@ -49,6 +49,10 @@ pub(crate) fn parse_binding(p: &mut Parser) -> ParsedSyntax {
 // // SCRIPT
 // let let = 5;
 // const let = 5;
+//
+// test_err binding_redeclaration
+// let a = 7; let a = 8;
+
 /// Parses an identifier binding or returns an invalid syntax if the identifier isn't valid in this context.
 /// An identifier may not be valid if:
 /// * it is named "eval" or "arguments" inside of strict mode
@@ -116,9 +120,25 @@ pub(crate) fn parse_identifier_binding(p: &mut Parser) -> ParsedSyntax {
 			}
 
 			let identifier_name = String::from(identifier_name);
+			let id = identifier_name.clone();
 			p.state
 				.name_map
 				.insert(identifier_name, identifier.range(p).as_range());
+
+			if let Some(other_range) = p
+				.state
+				.bindings_blocks
+				.has_binding(id, identifier.range(p).as_range())
+			{
+				p.error(
+					p.err_builder(&format!(
+						"The binding \"{}\" has been already declared",
+						identifier.text(p)
+					))
+					.primary(other_range, "First declaration here")
+					.secondary(identifier.range(p).as_range(), "Second declaration here"),
+				);
+			}
 		}
 
 		identifier
@@ -148,17 +168,17 @@ struct ArrayBindingPattern;
 
 // test array_binding
 // let a = "b";
-// let [a, b] = [1, 2];
-// let [a, ...abcd] = [1];
-// let [a = "default", b] = []
-// let [, a, ...rest] = []
-// let [[...rest], { a }] = []
+// let [c, b] = [1, 2];
+// let [d, ...abcd] = [1];
+// let [e = "default", x] = []
+// let [, f, ...rest] = []
+// let [[...rest2], { g }] = []
 //
 // test_err array_binding_err
 // let [a b] = [1, 2];
 // let [="default"] = [1, 2];
 // let ["default"] = [1, 2];
-// let [[a ] = [];
+// let [[c ] = [];
 //
 // test array_binding_rest
 // let [ ...abcd ] = a;
@@ -238,7 +258,7 @@ impl ParseObjectPattern for ObjectBindingPattern {
 
 	// test object_property_binding
 	// let { foo: bar  } = {}
-	// let { foo: bar = baz } = {}
+	// let { foo: bar_bar = baz } = {}
 	//
 	// test_err object_property_binding_err
 	// let { foo: , bar } = {}
@@ -247,7 +267,7 @@ impl ParseObjectPattern for ObjectBindingPattern {
 	//
 	// test object_shorthand_property
 	// let { a, b } = c
-	// let { a = "default", b = call() } = c
+	// let { d = "default", e = call() } = c
 	//
 	// test_err object_shorthand_property_err
 	// let { a b } = c
