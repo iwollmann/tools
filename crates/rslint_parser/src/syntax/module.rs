@@ -77,14 +77,14 @@ fn parse_module_item(p: &mut Parser) -> ParsedSyntax {
 // test_err import_err
 // import;
 // import *;
-// import * as b, { a, b } from "c";
-// import { a + b, d } from "c";
-// import { a, a } from "c";
+// import * as c, { a, b } from "c";
+// import { aa + bb, dd } from "c";
+// import { ab, ac } from "c";
 // import { default } from "c";
 // import { "a" } from "c";
-// import { as b } from "c";
+// import { as x } from "c";
 // import 4 from "c";
-// import a from 4;
+// import y from 4;
 pub(crate) fn parse_import(p: &mut Parser) -> ParsedSyntax {
 	if !p.at(T![import]) {
 		return Absent;
@@ -285,6 +285,8 @@ fn parse_named_import_specifier(p: &mut Parser) -> ParsedSyntax {
 
 	// test import_as_identifier
 	// import { as } from "test";
+	//
+	// test import_as_as_as_identifier
 	// import { as as as } from "test";
 	//
 	// test_err import_as_identifier_err

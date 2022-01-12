@@ -262,8 +262,8 @@ impl ParseObjectPattern for ObjectBindingPattern {
 	//
 	// test_err object_property_binding_err
 	// let { foo: , bar } = {}
-	// let { : bar = "test" } = {}
-	// let { , foo: bar } = {}
+	// let { : lorem = "test" } = {}
+	// let { , ipsum: bazz } = {}
 	//
 	// test object_shorthand_property
 	// let { a, b } = c
@@ -272,7 +272,7 @@ impl ParseObjectPattern for ObjectBindingPattern {
 	// test_err object_shorthand_property_err
 	// let { a b } = c
 	// let { = "test" } = c
-	// let { , a } = c
+	// let { , d } = c
 	fn parse_property_pattern(&self, p: &mut Parser) -> ParsedSyntax {
 		if !is_at_object_member_name(p) && !p.at_ts(token_set![T![:], T![=]]) {
 			return Absent;

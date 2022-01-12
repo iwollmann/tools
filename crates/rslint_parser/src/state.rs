@@ -123,7 +123,6 @@ impl Default for ParserState {
 			in_cond_expr: false,
 			no_recovery: false,
 			in_binding_list_for_signature: false,
-			in_default: false,
 			bindings_blocks: BindingsBlock::default(),
 		}
 	}

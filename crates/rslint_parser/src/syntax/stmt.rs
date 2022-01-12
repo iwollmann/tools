@@ -785,11 +785,11 @@ pub(crate) fn is_at_variable_declarations(p: &Parser) -> bool {
 // var q, w, e, r, t;
 //
 // test_err variable_declaration_statement_err
-// let a, { a } = { a: 10 }
-// const a = 1, { a } = { a: 10 }
-// const a;
-// let [a];
-// const { b };
+// let a, { b } = { a: 10 }
+// const c = 1, { d } = { a: 10 }
+// const e;
+// let [f];
+// const { g };
 pub(super) fn parse_variable_statement(p: &mut Parser) -> ParsedSyntax {
 	// test_err var_decl_err
 	// var a =;
