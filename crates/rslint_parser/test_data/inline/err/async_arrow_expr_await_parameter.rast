@@ -71,7 +71,7 @@ JsModule {
       1: (empty)
   3: EOF@25..26 "" [Whitespace("\n")] []
 --
-error[SyntaxError]: Illegal use of `await` as an identifier in an async context
+error[SyntaxError]: Illegal use of `await` as an identifier inside of a module
   ┌─ async_arrow_expr_await_parameter.js:1:15
   │
 1 │ let a = async await => {}
