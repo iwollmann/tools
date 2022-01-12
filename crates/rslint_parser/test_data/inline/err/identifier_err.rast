@@ -210,6 +210,15 @@ error[SyntaxError]: Illegal use of `await` as an identifier in an async context
   │                     ^^^^^
 
 --
+error[SyntaxError]: The binding test has been already declared
+  ┌─ identifier_err.js:3:16
+  │
+3 │ async function test(await) {}
+  │                ^^^^ First declaration
+4 │ function* test(yield) {}
+  │           ---- Second declaration
+
+--
 error[SyntaxError]: Illegal use of `yield` as an identifier in generator function
   ┌─ identifier_err.js:4:16
   │

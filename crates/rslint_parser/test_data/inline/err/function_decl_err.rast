@@ -459,6 +459,16 @@ error[SyntaxError]: expected a name for the function in a function declaration, 
   │                 ^
 
 --
+error[SyntaxError]: The binding foo has been already declared
+  ┌─ function_decl_err.js:2:10
+  │
+2 │ function foo {}
+  │          ^^^ First declaration
+  ·
+7 │ function *foo() {}
+  │           --- Second declaration
+
+--
 error[SyntaxError]: Illegal use of reserved keyword `yield` as an identifier in strict mode
   ┌─ function_decl_err.js:8:1
   │
@@ -483,11 +493,31 @@ error[SyntaxError]: return types can only be used in TypeScript files
   │                ^^^^^^^^
 
 --
+error[SyntaxError]: The binding foo has been already declared
+   ┌─ function_decl_err.js:2:10
+   │
+ 2 │ function foo {}
+   │          ^^^ First declaration
+   ·
+10 │ function foo(await) {}
+   │          --- Second declaration
+
+--
 error[SyntaxError]: Illegal use of `await` as an identifier inside of a module
    ┌─ function_decl_err.js:10:14
    │
 10 │ function foo(await) {}
    │              ^^^^^
+
+--
+error[SyntaxError]: The binding foo has been already declared
+   ┌─ function_decl_err.js:2:10
+   │
+ 2 │ function foo {}
+   │          ^^^ First declaration
+   ·
+11 │ function foo(yield) {}
+   │          --- Second declaration
 
 --
 error[SyntaxError]: Illegal use of reserved keyword `yield` as an identifier in strict mode

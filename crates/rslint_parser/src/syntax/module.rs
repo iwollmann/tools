@@ -48,23 +48,23 @@ fn parse_module_items(p: &mut Parser) {
 	let list_marker = p.start();
 	let mut progress = ParserProgress::default();
 
-	p.with_state(NewScopedBlock, |p| {
-		while !p.at(EOF) {
-			progress.assert_progressing(p);
+	let p = &mut *p.with_scoped_state(NewScopedBlock);
 
-			let module_item = parse_module_item(p);
+	while !p.at(EOF) {
+		progress.assert_progressing(p);
 
-			let recovered = module_item.or_recover(
-				p,
-				&ParseRecovery::new(JS_UNKNOWN_STATEMENT, STMT_RECOVERY_SET),
-				expected_statement,
-			);
+		let module_item = parse_module_item(p);
 
-			if recovered.is_err() {
-				break;
-			}
+		let recovered = module_item.or_recover(
+			p,
+			&ParseRecovery::new(JS_UNKNOWN_STATEMENT, STMT_RECOVERY_SET),
+			expected_statement,
+		);
+
+		if recovered.is_err() {
+			break;
 		}
-	});
+	}
 
 	list_marker.complete(p, JS_MODULE_ITEM_LIST);
 }

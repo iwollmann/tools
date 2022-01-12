@@ -1,0 +1,100 @@
+JsModule {
+    interpreter_token: missing (optional),
+    directives: JsDirectiveList [],
+    items: JsModuleItemList [
+        JsFunctionStatement {
+            async_token: missing (optional),
+            function_token: FUNCTION_KW@0..9 "function" [] [Whitespace(" ")],
+            star_token: missing (optional),
+            id: JsIdentifierBinding {
+                name_token: IDENT@9..10 "f" [] [],
+            },
+            type_parameters: missing (optional),
+            parameters: JsParameters {
+                l_paren_token: L_PAREN@10..11 "(" [] [],
+                items: JsParameterList [],
+                r_paren_token: R_PAREN@11..13 ")" [] [Whitespace(" ")],
+            },
+            return_type: missing (optional),
+            body: JsFunctionBody {
+                l_curly_token: L_CURLY@13..14 "{" [] [],
+                directives: JsDirectiveList [],
+                statements: JsStatementList [],
+                r_curly_token: R_CURLY@14..16 "}" [] [Whitespace(" ")],
+            },
+        },
+        JsFunctionStatement {
+            async_token: missing (optional),
+            function_token: FUNCTION_KW@16..25 "function" [] [Whitespace(" ")],
+            star_token: missing (optional),
+            id: JsIdentifierBinding {
+                name_token: IDENT@25..26 "f" [] [],
+            },
+            type_parameters: missing (optional),
+            parameters: JsParameters {
+                l_paren_token: L_PAREN@26..27 "(" [] [],
+                items: JsParameterList [],
+                r_paren_token: R_PAREN@27..29 ")" [] [Whitespace(" ")],
+            },
+            return_type: missing (optional),
+            body: JsFunctionBody {
+                l_curly_token: L_CURLY@29..30 "{" [] [],
+                directives: JsDirectiveList [],
+                statements: JsStatementList [],
+                r_curly_token: R_CURLY@30..31 "}" [] [],
+            },
+        },
+    ],
+    eof_token: EOF@31..32 "" [Whitespace("\n")] [],
+}
+
+0: JS_MODULE@0..32
+  0: (empty)
+  1: JS_DIRECTIVE_LIST@0..0
+  2: JS_MODULE_ITEM_LIST@0..31
+    0: JS_FUNCTION_STATEMENT@0..16
+      0: (empty)
+      1: FUNCTION_KW@0..9 "function" [] [Whitespace(" ")]
+      2: (empty)
+      3: JS_IDENTIFIER_BINDING@9..10
+        0: IDENT@9..10 "f" [] []
+      4: (empty)
+      5: JS_PARAMETERS@10..13
+        0: L_PAREN@10..11 "(" [] []
+        1: JS_PARAMETER_LIST@11..11
+        2: R_PAREN@11..13 ")" [] [Whitespace(" ")]
+      6: (empty)
+      7: JS_FUNCTION_BODY@13..16
+        0: L_CURLY@13..14 "{" [] []
+        1: JS_DIRECTIVE_LIST@14..14
+        2: JS_STATEMENT_LIST@14..14
+        3: R_CURLY@14..16 "}" [] [Whitespace(" ")]
+    1: JS_FUNCTION_STATEMENT@16..31
+      0: (empty)
+      1: FUNCTION_KW@16..25 "function" [] [Whitespace(" ")]
+      2: (empty)
+      3: JS_IDENTIFIER_BINDING@25..26
+        0: IDENT@25..26 "f" [] []
+      4: (empty)
+      5: JS_PARAMETERS@26..29
+        0: L_PAREN@26..27 "(" [] []
+        1: JS_PARAMETER_LIST@27..27
+        2: R_PAREN@27..29 ")" [] [Whitespace(" ")]
+      6: (empty)
+      7: JS_FUNCTION_BODY@29..31
+        0: L_CURLY@29..30 "{" [] []
+        1: JS_DIRECTIVE_LIST@30..30
+        2: JS_STATEMENT_LIST@30..30
+        3: R_CURLY@30..31 "}" [] []
+  3: EOF@31..32 "" [Whitespace("\n")] []
+--
+error[SyntaxError]: The binding f has been already declared
+  ┌─ function_block_redeclaration.js:1:10
+  │
+1 │ function f() {} function f() {}
+  │          ^               - Second declaration
+  │          │                
+  │          First declaration
+
+--
+function f() {} function f() {}

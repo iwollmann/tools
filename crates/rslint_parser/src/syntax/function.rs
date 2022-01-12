@@ -18,11 +18,11 @@ use rslint_syntax::{JsSyntaxKind, T};
 /// A function declaration, this could be async and or a generator. This takes a marker
 /// because you need to first advance over async or start a marker and feed it in.
 // test function_decl
-// function foo() {}
-// function *foo() {}
-// async function *foo() {}
-// async function foo() {}
-// function *foo() {
+// function foo1() {}
+// function *foo2() {}
+// async function *foo3() {}
+// async function foo4() {}
+// function *foo5() {
 //   yield foo;
 // }
 //
@@ -48,6 +48,9 @@ use rslint_syntax::{JsSyntaxKind, T};
 //
 // test function_block_declaration
 // let a = 2; function f() { let a = 7; }
+//
+// test_err function_block_redeclaration
+// function f() {} function f() {}
 pub(super) fn parse_function_statement(p: &mut Parser) -> ParsedSyntax {
 	let m = p.start();
 	parse_function(p, m, FunctionKind::Statement)
@@ -59,9 +62,9 @@ pub(super) fn parse_function_expression(p: &mut Parser) -> ParsedSyntax {
 }
 
 // test export_function_clause
-// export function test(a, b) {}
-// export function* test(a, b) {}
-// export async function test(a, b, ) {}
+// export function test1(a, b) {}
+// export function* test2(a, b) {}
+// export async function test3(a, b, ) {}
 pub(super) fn parse_export_function_clause(p: &mut Parser) -> ParsedSyntax {
 	let m = p.start();
 	parse_function(p, m, FunctionKind::Export)
@@ -128,12 +131,14 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 			if let Present(id) = id {
 				let identifier = String::from(id.text(p));
 				if let Some(other_range) = p.state.bindings_blocks.get(&identifier) {
-					p.err_builder(&format!(
-						"The binding {} has been already declared",
-						id.text(p)
-					))
-					.primary(other_range, "First declaration")
-					.secondary(id.range(p).as_range(), "Second declaration");
+					let error = p
+						.err_builder(&format!(
+							"The binding {} has been already declared",
+							id.text(p)
+						))
+						.primary(other_range, "First declaration")
+						.secondary(id.range(p).as_range(), "Second declaration");
+					p.error(error);
 				} else {
 					p.state
 						.bindings_blocks
