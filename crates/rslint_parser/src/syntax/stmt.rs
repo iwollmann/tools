@@ -1128,6 +1128,8 @@ fn parse_for_head(p: &mut Parser) -> JsSyntaxKind {
 		return JS_FOR_STATEMENT;
 	}
 
+	p.state.bindings_blocks.enter_block();
+
 	// `for (let...` | `for (const...` | `for (var...`
 
 	if p.at(T![const]) || p.at(T![var]) || (p.cur_src() == "let" && FOLLOWS_LET.contains(p.nth(1)))
@@ -1162,6 +1164,7 @@ fn parse_for_head(p: &mut Parser) -> JsSyntaxKind {
 		} else {
 			m.complete(p, JS_VARIABLE_DECLARATIONS);
 			parse_normal_for_head(p);
+			p.state.bindings_blocks.leave_block();
 			JS_FOR_STATEMENT
 		}
 	} else {
@@ -1198,6 +1201,7 @@ fn parse_for_head(p: &mut Parser) -> JsSyntaxKind {
 		init_expr.or_add_diagnostic(p, js_parse_error::expected_expression);
 
 		parse_normal_for_head(p);
+		p.state.bindings_blocks.leave_block();
 		JS_FOR_STATEMENT
 	}
 }
@@ -1225,14 +1229,14 @@ fn parse_for_of_or_in_head(p: &mut Parser) -> JsSyntaxKind {
 	if is_in {
 		p.bump_any();
 		parse_expression(p).or_add_diagnostic(p, js_parse_error::expected_expression);
-
+		p.state.bindings_blocks.leave_block();
 		JS_FOR_IN_STATEMENT
 	} else {
 		p.bump_remap(T![of]);
 
 		parse_expr_or_assignment(p)
 			.or_add_diagnostic(p, js_parse_error::expected_expression_assignment);
-
+		p.state.bindings_blocks.leave_block();
 		JS_FOR_OF_STATEMENT
 	}
 }
@@ -1246,6 +1250,9 @@ fn parse_for_of_or_in_head(p: &mut Parser) -> JsSyntaxKind {
 // for (let foo of []) {}
 // for (let i = 5, j = 6; i < j; ++j) {}
 // for await (let a of []) {}
+//
+// test for_stmt_redeclaration
+// let a; for (let a; a > 3; a++) {}
 pub fn parse_for_statement(p: &mut Parser) -> ParsedSyntax {
 	// test_err for_stmt_err
 	// for ;; {}
@@ -1352,6 +1359,7 @@ fn parse_switch_clause(
 	let m = p.start();
 	match p.cur() {
 		T![default] => {
+			p.state.bindings_blocks.enter_block();
 			// in case we have two `default` expression, we mark the second one
 			// as `JS_CASE_CLAUSE` where the the "default" keyword is an Unknown node
 			let syntax_kind = if first_default.is_some() {
@@ -1381,14 +1389,17 @@ fn parse_switch_clause(
 				p.error(err);
 			}
 
+			p.state.bindings_blocks.leave_block();
 			Present(default)
 		}
 		T![case] => {
+			p.state.bindings_blocks.enter_block();
 			p.bump_any();
 			parse_expression(p).or_add_diagnostic(p, js_parse_error::expected_expression);
 			p.expect(T![:]);
 
 			SwitchClausesList.parse_list(p);
+			p.state.bindings_blocks.leave_block();
 			Present(m.complete(p, JS_CASE_CLAUSE))
 		}
 		_ => {
@@ -1468,6 +1479,14 @@ impl ParseNodeList for SwitchCasesList {
 // switch (foo) {
 //  case bar:
 //  default:
+// }
+//
+// test switch_stmt_redeclaration
+// let a;
+// switch (foo) {
+//   default: {
+//     let a;
+//   }
 // }
 pub fn parse_switch_statement(p: &mut Parser) -> ParsedSyntax {
 	// test_err switch_stmt_err

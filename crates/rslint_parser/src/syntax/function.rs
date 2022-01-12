@@ -195,6 +195,7 @@ pub(super) fn function_body(p: &mut Parser) -> ParsedSyntax {
 pub(super) fn function_body_or_declaration(p: &mut Parser) {
 	// omitting the body is allowed in ts
 	if p.typescript() && !p.at(T!['{']) && is_semi(p, 0) {
+		p.state.bindings_blocks.leave_block();
 		p.eat(T![;]);
 	} else {
 		let body = function_body(p);
