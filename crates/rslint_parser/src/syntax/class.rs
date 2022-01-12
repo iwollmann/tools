@@ -1,15 +1,16 @@
 use crate::parser::{ParsedSyntax, ParserProgress, RecoveryResult};
 use crate::state::{
 	AllowObjectExpression, ChangeParserState, EnableStrictMode, InAsync, InGenerator,
+	SignatureFlags,
 };
-use crate::syntax::binding::parse_binding;
+use crate::syntax::binding::{parse_binding, parse_binding_pattern};
 use crate::syntax::expr::parse_expr_or_assignment;
 use crate::syntax::function::{
-	parse_formal_param_pat, parse_function_body, parse_parameter_list, parse_parameters_list,
-	parse_ts_type_annotation_or_error, ts_parameter_types, SignatureFlags,
+	parse_function_body, parse_parameter, parse_parameter_list, parse_parameters_list,
+	parse_ts_type_annotation_or_error, ts_parameter_types,
 };
 use crate::syntax::js_parse_error;
-use crate::syntax::js_parse_error::expected_parameter;
+use crate::syntax::js_parse_error::expected_binding;
 use crate::syntax::object::{
 	is_at_literal_member_name, parse_computed_member_name, parse_literal_member_name,
 };
@@ -24,6 +25,7 @@ use crate::{
 	CompletedMarker, Event, Marker, ParseNodeList, ParseRecovery, Parser, StrictMode,
 	SyntaxFeature, TokenSet,
 };
+use num_bigint::Sign;
 use rome_rowan::SyntaxKind;
 use rslint_syntax::JsSyntaxKind::*;
 use rslint_syntax::{JsSyntaxKind, T};
@@ -176,18 +178,7 @@ fn parse_class(p: &mut Parser, m: Marker, kind: ClassKind) -> ParsedSyntax {
 	}
 
 	p.expect(T!['{']);
-
-	// test_err class_async_err
-	// // SCRIPT
-	// async function* test() {
-	// 	class A {
-	//  	prop = await test();
-	//   	gen = yield err;
-	// 	}
-	// }
-	p.with_state(InAsync(false).and(InGenerator(false)), |p| {
-		ClassMembersList.parse_list(p)
-	});
+	ClassMembersList.parse_list(p);
 	p.expect(T!['}']);
 
 	let mut class_marker = m.complete(p, kind.into());
@@ -659,7 +650,7 @@ fn parse_class_member_impl(
 				} else {
 					let has_l_paren = p.expect(T!['(']);
 					p.with_state(AllowObjectExpression(has_l_paren), |p| {
-						parse_formal_param_pat(p)
+						parse_parameter(p, SignatureFlags::empty())
 							.or_add_diagnostic(p, js_parse_error::expected_parameter);
 						p.expect(T![')']);
 						parse_function_body(p, SignatureFlags::empty())
@@ -736,7 +727,28 @@ fn parse_property_class_member_body(p: &mut Parser, member_marker: Marker) -> Pa
 	}
 
 	parse_ts_type_annotation_or_error(p).ok();
-	parse_initializer_clause(p).ok();
+
+	// test class_await_property_initializer
+	// // SCRIPT
+	// async function* test() {
+	// 	class A {
+	//  	prop = await;
+	// 	}
+	// }
+
+	// test_err class_yield_property_initializer
+	// // SCRIPT
+	// async function* test() {
+	// 	class A {
+	//  	prop = yield;
+	// 	}
+	// }
+
+	p.with_state(
+		InGenerator(false).and(InAsync(false)),
+		parse_initializer_clause,
+	)
+	.ok();
 
 	if !optional_semi(p) {
 		// Gets the start of the member
@@ -884,13 +896,14 @@ fn parse_constructor_parameter_list(p: &mut Parser) -> ParsedSyntax {
 	let m = p.start();
 	parse_parameters_list(
 		p,
+		SignatureFlags::empty(),
 		parse_constructor_parameter,
 		JS_CONSTRUCTOR_PARAMETER_LIST,
 	);
 	Present(m.complete(p, JS_CONSTRUCTOR_PARAMETERS))
 }
 
-fn parse_constructor_parameter(p: &mut Parser) -> ParsedSyntax {
+fn parse_constructor_parameter(p: &mut Parser, flags: SignatureFlags) -> ParsedSyntax {
 	// test_err class_constructor_parameter
 	// class B { constructor(protected b) {} }
 
@@ -918,11 +931,13 @@ fn parse_constructor_parameter(p: &mut Parser) -> ParsedSyntax {
 			}
 		}
 
-		parse_formal_param_pat(p).or_add_diagnostic(p, expected_parameter);
+		if let Some(parameter) = parse_parameter(p, flags).or_add_diagnostic(p, expected_binding) {
+			parameter.undo_completion(p).abandon(p);
+		}
 
 		Present(ts_param.complete(p, TS_CONSTRUCTOR_PARAM))
 	} else {
-		parse_formal_param_pat(p)
+		parse_parameter(p, flags)
 	}
 }
 

@@ -4,10 +4,10 @@ use super::expr::{parse_expr_or_assignment, parse_lhs_expr, parse_literal_expres
 use crate::parser::ParserProgress;
 #[allow(deprecated)]
 use crate::parser::SingleTokenParseRecovery;
-use crate::state::InBindingListForSignature;
+use crate::state::{InBindingListForSignature, SignatureFlags};
 use crate::syntax::binding::parse_binding;
 use crate::syntax::expr::{is_at_name, parse_any_name};
-use crate::syntax::function::{parse_parameter_list, SignatureFlags};
+use crate::syntax::function::parse_parameter_list;
 use crate::syntax::js_parse_error;
 use crate::{JsSyntaxKind::*, *};
 

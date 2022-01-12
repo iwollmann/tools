@@ -2,11 +2,12 @@
 use crate::parser::single_token_parse_recovery::SingleTokenParseRecovery;
 use crate::parser::ParsedSyntax::{Absent, Present};
 use crate::parser::{ParsedSyntax, RecoveryResult};
-use crate::state::AllowObjectExpression;
+use crate::state::{AllowObjectExpression, SignatureFlags};
+use crate::syntax::binding::parse_binding_pattern;
 use crate::syntax::expr::{is_at_name, parse_expr_or_assignment, parse_expression};
 use crate::syntax::function::{
-	parse_formal_param_pat, parse_function_body, parse_parameter_list, parse_ts_parameter_types,
-	parse_ts_type_annotation_or_error, SignatureFlags,
+	parse_function_body, parse_parameter, parse_parameter_list, parse_ts_parameter_types,
+	parse_ts_type_annotation_or_error,
 };
 use crate::syntax::js_parse_error;
 use crate::{ParseRecovery, ParseSeparatedList, Parser};
@@ -254,7 +255,8 @@ fn parse_setter_object_member(p: &mut Parser) -> ParsedSyntax {
 	let has_l_paren = p.expect(T!['(']);
 
 	p.with_state(AllowObjectExpression(has_l_paren), |p| {
-		parse_formal_param_pat(p).or_add_diagnostic(p, js_parse_error::expected_parameter);
+		parse_parameter(p, SignatureFlags::empty())
+			.or_add_diagnostic(p, js_parse_error::expected_parameter);
 		p.expect(T![')']);
 
 		parse_function_body(p, SignatureFlags::empty())

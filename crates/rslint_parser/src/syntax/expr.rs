@@ -9,15 +9,15 @@ use super::util::*;
 #[allow(deprecated)]
 use crate::parser::single_token_parse_recovery::SingleTokenParseRecovery;
 use crate::parser::{ParserProgress, RecoveryResult};
-use crate::state::{InConditionExpression, PotentialArrowStart};
+use crate::state::{InConditionExpression, PotentialArrowStart, SignatureFlags};
 use crate::syntax::assignment::{
 	expression_to_assignment, expression_to_assignment_pattern, parse_assignment,
 	AssignmentExprPrecedence,
 };
-use crate::syntax::binding::{parse_binding, parse_identifier_binding};
+use crate::syntax::binding::parse_binding;
 use crate::syntax::class::parse_class_expression;
 use crate::syntax::function::{
-	parse_arrow_body, parse_function_expression, parse_parameter_list, SignatureFlags,
+	parse_arrow_body, parse_function_expression, parse_parameter, parse_parameter_list,
 };
 use crate::syntax::js_parse_error;
 use crate::syntax::js_parse_error::{
@@ -1047,7 +1047,7 @@ fn parse_primary_expression(p: &mut Parser) -> ParsedSyntax {
 				// foo =>
 				// {}
 				let m = p.start();
-				parse_identifier_binding(p).or_add_diagnostic(p, expected_identifier);
+				parse_binding(p).or_add_diagnostic(p, expected_identifier);
 				p.bump(T![=>]);
 				parse_arrow_body(p, SignatureFlags::empty())
 					.or_add_diagnostic(p, js_parse_error::expected_arrow_body);

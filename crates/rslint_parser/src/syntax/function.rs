@@ -1,22 +1,23 @@
 use crate::parser::{ParsedSyntax, ParserProgress};
 use crate::state::{
-	AllowObjectExpression, ChangeParserState, InAsync, InConstructor, InFunction, InGenerator,
-	NewLabelsScope,
+	AllowObjectExpression, ChangeParserState, EnterFunction, InAsync, InGenerator, NewLabelsScope,
+	SignatureFlags,
 };
-use crate::syntax::binding::{
-	parse_binding, parse_binding_pattern, parse_binding_pattern_with_optional_default,
-};
+use crate::syntax::binding::{parse_binding, parse_binding_pattern};
+use crate::syntax::class::parse_initializer_clause;
 use crate::syntax::expr::parse_expr_or_assignment;
 use crate::syntax::js_parse_error;
 use crate::syntax::js_parse_error::expected_binding;
 use crate::syntax::stmt::{is_semi, parse_block_impl};
 use crate::syntax::typescript::{
-	maybe_eat_incorrect_modifier, ts_type, ts_type_or_type_predicate_ann, ts_type_params,
+	maybe_eat_incorrect_modifier, maybe_ts_type_annotation, ts_type, ts_type_or_type_predicate_ann,
+	ts_type_params,
 };
 use crate::JsSyntaxFeature::TypeScript;
 use crate::ParsedSyntax::{Absent, Present};
 use crate::{Marker, ParseRecovery, Parser, SyntaxFeature};
 use bitflags::bitflags;
+use num_bigint::Sign;
 use rslint_syntax::JsSyntaxKind::*;
 use rslint_syntax::{JsSyntaxKind, T};
 
@@ -123,7 +124,7 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 		flags |= SignatureFlags::GENERATOR;
 	}
 
-	let id = parse_function_id(p);
+	let id = parse_function_id(p, kind, flags);
 
 	if !kind.is_id_optional() {
 		id.or_add_diagnostic(p, |p, range| {
@@ -165,29 +166,50 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 	Present(function)
 }
 
+// test_err break_in_nested_function
+// while (true) {
+// 	function helper() {
+//  	 break;
+// 	}
+// }
 pub(super) fn parse_function_body(p: &mut Parser, flags: SignatureFlags) -> ParsedSyntax {
-	p.with_state(
-		InFunction(true)
-			.and(InConstructor(flags.contains(SignatureFlags::CONSTRUCTOR)))
-			.and(InAsync(flags.contains(SignatureFlags::ASYNC)))
-			.and(InGenerator(flags.contains(SignatureFlags::GENERATOR)))
-			.and(NewLabelsScope),
-		|p| parse_block_impl(p, JS_FUNCTION_BODY),
-	)
+	p.with_state(EnterFunction(flags), |p| {
+		parse_block_impl(p, JS_FUNCTION_BODY)
+	})
 }
 
-// test function_id
-// // SCRIPT
-// function test() {}
-// function await(test) {}
-// async function await(test) {}
-// function yield(test) {}
-// function* yield(test) {}
-// async function test() {
-//   function await(test) {}
-// }
-pub(super) fn parse_function_id(p: &mut Parser) -> ParsedSyntax {
-	p.with_state(InAsync(false).and(InGenerator(false)), parse_binding)
+fn parse_function_id(p: &mut Parser, kind: FunctionKind, flags: SignatureFlags) -> ParsedSyntax {
+	let change = match kind {
+		FunctionKind::Expression => {
+			// test function_expression_id
+			// // SCRIPT
+			// (function await() {});
+			// (function yield() {});
+			// (async function yield() {});
+			// (function* await() {})
+			//
+			// test_err function_expression_id_err
+			// (async function await() {});
+			// (function* yield() {});
+			InAsync(flags.contains(SignatureFlags::ASYNC))
+				.and(InGenerator(flags.contains(SignatureFlags::GENERATOR)))
+		}
+		_ => {
+			// test function_id
+			// // SCRIPT
+			// function test() {}
+			// function await(test) {}
+			// async function await(test) {}
+			// function yield(test) {}
+			// function* yield(test) {}
+			// async function test() {
+			//   function await(test) {}
+			// }
+			InAsync(false).and(InGenerator(false))
+		}
+	};
+
+	p.with_state(change, parse_binding)
 }
 
 // TODO 1725 This is probably not ideal (same with the `declare` keyword). We should
@@ -254,21 +276,26 @@ pub(super) fn is_at_async_function(p: &mut Parser, should_check_line_break: Line
 	}
 }
 
-pub(super) fn parse_arrow_body(p: &mut Parser, flags: SignatureFlags) -> ParsedSyntax {
+pub(super) fn parse_arrow_body(p: &mut Parser, mut flags: SignatureFlags) -> ParsedSyntax {
+	// test arrow_in_constructor
+	// class A {
+	// 	constructor() {
+	// 		() => { super() };
+	// 		() => super();
+	//  }
+	// }
+	if p.state.in_constructor() {
+		flags |= SignatureFlags::CONSTRUCTOR
+	}
+
 	if p.at(T!['{']) {
 		parse_function_body(p, flags)
 	} else {
-		p.with_state(
-			InFunction(true)
-				.and(InAsync(flags.contains(SignatureFlags::ASYNC)))
-				.and(InGenerator(false)),
-			parse_expr_or_assignment,
-		)
+		p.with_state(EnterFunction(flags), parse_expr_or_assignment)
 	}
 }
 
-#[allow(clippy::unnecessary_unwrap)]
-pub(super) fn parse_formal_param_pat(p: &mut Parser) -> ParsedSyntax {
+pub(super) fn parse_parameter(p: &mut Parser, flags: SignatureFlags) -> ParsedSyntax {
 	if p.typescript() {
 		if let Some(modifier) = maybe_eat_incorrect_modifier(p) {
 			let err = p
@@ -279,7 +306,26 @@ pub(super) fn parse_formal_param_pat(p: &mut Parser) -> ParsedSyntax {
 		}
 	}
 
-	parse_binding_pattern_with_optional_default(p)
+	let binding = p.with_state(
+		InAsync(flags.contains(SignatureFlags::ASYNC))
+			.and(InGenerator(flags.contains(SignatureFlags::GENERATOR))),
+		parse_binding_pattern,
+	);
+
+	binding.map(|binding| {
+		let m = binding.precede(p);
+
+		maybe_ts_type_annotation(p);
+
+		p.with_state(
+			InAsync(flags.contains(SignatureFlags::ASYNC))
+				.and(InGenerator(flags.contains(SignatureFlags::GENERATOR))),
+			parse_initializer_clause,
+		)
+		.ok();
+
+		m.complete(p, JS_PARAMETER)
+	})
 }
 
 // test parameter_list
@@ -290,13 +336,7 @@ pub(super) fn parse_parameter_list(p: &mut Parser, flags: SignatureFlags) -> Par
 		return Absent;
 	}
 	let m = p.start();
-	p.with_state(
-		InAsync(flags.contains(SignatureFlags::ASYNC))
-			.and(InGenerator(flags.contains(SignatureFlags::GENERATOR))),
-		|p| {
-			parse_parameters_list(p, parse_formal_param_pat, JS_PARAMETER_LIST);
-		},
-	);
+	parse_parameters_list(p, flags, parse_parameter, JS_PARAMETER_LIST);
 
 	Present(m.complete(p, JS_PARAMETERS))
 }
@@ -304,7 +344,8 @@ pub(super) fn parse_parameter_list(p: &mut Parser, flags: SignatureFlags) -> Par
 /// Parses a (param, param) list into the current active node
 pub(super) fn parse_parameters_list(
 	p: &mut Parser,
-	parse_param: impl Fn(&mut Parser) -> ParsedSyntax,
+	flags: SignatureFlags,
+	parse_parameter: impl Fn(&mut Parser, SignatureFlags) -> ParsedSyntax,
 	list_kind: JsSyntaxKind,
 ) {
 	let mut first = true;
@@ -342,7 +383,7 @@ pub(super) fn parse_parameters_list(
 					p.error(err);
 					let m = p.start();
 					p.bump_any();
-					m.complete(p, JS_UNKNOWN_BINDING);
+					m.complete(p, JS_UNKNOWN_PARAMETER);
 				}
 
 				// type annotation `...foo: number[]`
@@ -395,10 +436,10 @@ pub(super) fn parse_parameters_list(
 
 				// test_err formal_params_invalid
 				// function (a++, c) {}
-				let recovered_result = parse_param(p).or_recover(
+				let recovered_result = parse_parameter(p, flags).or_recover(
 					p,
 					&ParseRecovery::new(
-						JS_UNKNOWN_BINDING,
+						JS_UNKNOWN_PARAMETER,
 						token_set![
 							T![ident],
 							T![await],
@@ -423,12 +464,4 @@ pub(super) fn parse_parameters_list(
 	});
 
 	p.expect(T![')']);
-}
-
-bitflags! {
-	pub(crate) struct SignatureFlags: u8 {
-		const ASYNC 			= 0b00001;
-		const GENERATOR 	= 0b00010;
-		const CONSTRUCTOR = 0b00100;
-	}
 }
