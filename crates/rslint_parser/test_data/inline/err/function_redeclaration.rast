@@ -89,7 +89,7 @@ JsModule {
   3: EOF@31..32 "" [Whitespace("\n")] []
 --
 error[SyntaxError]: The binding f has been already declared
-  ┌─ function_block_redeclaration.js:1:10
+  ┌─ function_redeclaration.js:1:10
   │
 1 │ function f() {} function f() {}
   │          ^               - Second declaration

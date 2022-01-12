@@ -1,6 +1,6 @@
 use crate::parser::ParsedSyntax;
 use crate::state::{
-	ChangeParserState, InAsync, InConstructor, InFunction, InGenerator, NewLabelsScope,
+	ChangeParserState, InAsync, InBlock, InConstructor, InFunction, InGenerator, NewLabelsScope,
 	NewScopedBlock,
 };
 use crate::syntax::binding::parse_binding;
@@ -49,8 +49,19 @@ use rslint_syntax::{JsSyntaxKind, T};
 // test function_block_declaration
 // let a = 2; function f() { let a = 7; }
 //
-// test_err function_block_redeclaration
+// test function_redeclaration
+// // SCRIPT
 // function f() {} function f() {}
+//
+// test_err function_redeclaration
+// function f() {} function f() {}
+//
+// test_err function_redeclaration_block
+// { function a() {} function a() {} }
+//
+// test function_redeclaration_block_script
+// // SCRIPT
+// { function a() {} function a() {} }
 pub(super) fn parse_function_statement(p: &mut Parser) -> ParsedSyntax {
 	let m = p.start();
 	parse_function(p, m, FunctionKind::Statement)
@@ -128,21 +139,23 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 		|p| {
 			let id = parse_binding(p);
 
-			if let Present(id) = id {
-				let identifier = String::from(id.text(p));
-				if let Some(other_range) = p.state.bindings_blocks.get(&identifier) {
-					let error = p
-						.err_builder(&format!(
-							"The binding {} has been already declared",
-							id.text(p)
-						))
-						.primary(other_range, "First declaration")
-						.secondary(id.range(p).as_range(), "Second declaration");
-					p.error(error);
-				} else {
-					p.state
-						.bindings_blocks
-						.insert(identifier, id.range(p).as_range());
+			if p.state.strict().is_some() || p.state.in_block() {
+				if let Present(id) = id {
+					let identifier = String::from(id.text(p));
+					if let Some(other_range) = p.state.bindings_blocks.get(&identifier) {
+						let error = p
+							.err_builder(&format!(
+								"The binding {} has been already declared",
+								id.text(p)
+							))
+							.primary(other_range, "First declaration")
+							.secondary(id.range(p).as_range(), "Second declaration");
+						p.error(error);
+					} else {
+						p.state
+							.bindings_blocks
+							.insert(identifier, id.range(p).as_range());
+					}
 				}
 			}
 			if !kind.is_id_optional() {
@@ -191,6 +204,7 @@ pub(super) fn function_body(p: &mut Parser) -> ParsedSyntax {
 	p.with_state(
 		InFunction(true)
 			.and(InConstructor(false))
+			.and(InBlock(true))
 			.and(NewScopedBlock),
 		|p| parse_block_impl(p, JS_FUNCTION_BODY),
 	)

@@ -50,6 +50,9 @@ pub(crate) fn parse_binding(p: &mut Parser) -> ParsedSyntax {
 // let let = 5;
 // const let = 5;
 //
+// test binding_redeclaration
+// var a; var a;
+//
 // test_err binding_redeclaration
 // let a = 7; let a = 8;
 
@@ -125,19 +128,22 @@ pub(crate) fn parse_identifier_binding(p: &mut Parser) -> ParsedSyntax {
 				.name_map
 				.insert(identifier_name, identifier.range(p).as_range());
 
-			if let Some(other_range) = p.state.bindings_blocks.get(&id) {
-				let err = p
-					.err_builder(&format!(
-						"The binding \"{}\" has been already declared",
-						identifier.text(p)
-					))
-					.primary(other_range, "First declaration here")
-					.secondary(identifier.range(p).as_range(), "Second declaration here");
-				p.error(err);
-			} else {
-				p.state
-					.bindings_blocks
-					.insert(id, identifier.range(p).as_range());
+			// when using "var", we don't care about binding redeclaration
+			if parent != "var" {
+				if let Some(other_range) = p.state.bindings_blocks.get(&id) {
+					let err = p
+						.err_builder(&format!(
+							"The binding \"{}\" has been already declared",
+							identifier.text(p)
+						))
+						.primary(other_range, "First declaration here")
+						.secondary(identifier.range(p).as_range(), "Second declaration here");
+					p.error(err);
+				} else {
+					p.state
+						.bindings_blocks
+						.insert(id, identifier.range(p).as_range());
+				}
 			}
 		}
 

@@ -46,6 +46,8 @@ pub struct ParserState {
 	in_cond_expr: bool,
 	pub(crate) no_recovery: bool,
 	in_binding_list_for_signature: bool,
+	/// Whether the parser is inside a block
+	in_block: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -76,6 +78,7 @@ impl Default for ParserState {
 			no_recovery: false,
 			in_binding_list_for_signature: false,
 			bindings_blocks: HashMap::new(),
+			in_block: false,
 		}
 	}
 }
@@ -140,6 +143,10 @@ impl ParserState {
 
 	pub fn in_binding_list_for_signature(&self) -> bool {
 		self.in_binding_list_for_signature
+	}
+
+	pub fn in_block(&self) -> bool {
+		self.in_block
 	}
 }
 
@@ -317,6 +324,7 @@ gen_change_parser_state!(IncludeIn { include_in: bool } => IncludeInSnapshot);
 gen_change_parser_state!(InConditionExpression { in_cond_expr: bool } => InConditionExpressionSnapshot);
 gen_change_parser_state!(AllowObjectExpression { allow_object_expr: bool } => AllowObjectExpressionSnapshot);
 gen_change_parser_state!(InBindingListForSignature { in_binding_list_for_signature: bool } => InBindingListForSignatureSnapshot);
+gen_change_parser_state!(InBlock { in_block: bool } => InBlockSnapshot);
 
 #[derive(Debug, Clone, Default)]
 pub struct SeenLabelsSnapshot(HashMap<String, Range<usize>>);
