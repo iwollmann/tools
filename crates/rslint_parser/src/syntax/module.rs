@@ -1,4 +1,5 @@
 use crate::parser::{expected_any, expected_node, ParserProgress, RecoveryResult, ToDiagnostic};
+use crate::state::NewScopedBlock;
 use crate::syntax::binding::parse_binding;
 use crate::syntax::class::{parse_export_class_clause, parse_export_default_class_case};
 use crate::syntax::expr::{
@@ -47,21 +48,23 @@ fn parse_module_items(p: &mut Parser) {
 	let list_marker = p.start();
 	let mut progress = ParserProgress::default();
 
-	while !p.at(EOF) {
-		progress.assert_progressing(p);
+	p.with_state(NewScopedBlock, |p| {
+		while !p.at(EOF) {
+			progress.assert_progressing(p);
 
-		let module_item = parse_module_item(p);
+			let module_item = parse_module_item(p);
 
-		let recovered = module_item.or_recover(
-			p,
-			&ParseRecovery::new(JS_UNKNOWN_STATEMENT, STMT_RECOVERY_SET),
-			expected_statement,
-		);
+			let recovered = module_item.or_recover(
+				p,
+				&ParseRecovery::new(JS_UNKNOWN_STATEMENT, STMT_RECOVERY_SET),
+				expected_statement,
+			);
 
-		if recovered.is_err() {
-			break;
+			if recovered.is_err() {
+				break;
+			}
 		}
-	}
+	});
 
 	list_marker.complete(p, JS_MODULE_ITEM_LIST);
 }

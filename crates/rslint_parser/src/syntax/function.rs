@@ -1,6 +1,7 @@
 use crate::parser::ParsedSyntax;
 use crate::state::{
 	ChangeParserState, InAsync, InConstructor, InFunction, InGenerator, NewLabelsScope,
+	NewScopedBlock,
 };
 use crate::syntax::binding::parse_binding;
 use crate::syntax::decl::parse_parameter_list;
@@ -125,18 +126,18 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 			let id = parse_binding(p);
 
 			if let Present(id) = id {
-				let identifier = String::from(id.text(guard));
-				let range = id.range(guard).as_range();
-				if let Some(other_range) =
-					guard.state.bindings_blocks.has_binding(identifier, range)
-				{
-					guard
-						.err_builder(&format!(
-							"The binding {} has been already declared",
-							id.text(guard)
-						))
-						.primary(other_range, "First declaration")
-						.secondary(id.range(guard).as_range(), "Second declaration");
+				let identifier = String::from(id.text(p));
+				if let Some(other_range) = p.state.bindings_blocks.get(&identifier) {
+					p.err_builder(&format!(
+						"The binding {} has been already declared",
+						id.text(p)
+					))
+					.primary(other_range, "First declaration")
+					.secondary(id.range(p).as_range(), "Second declaration");
+				} else {
+					p.state
+						.bindings_blocks
+						.insert(identifier, id.range(p).as_range());
 				}
 			}
 			if !kind.is_id_optional() {
@@ -182,9 +183,12 @@ fn parse_function(p: &mut Parser, m: Marker, kind: FunctionKind) -> ParsedSyntax
 }
 
 pub(super) fn function_body(p: &mut Parser) -> ParsedSyntax {
-	p.with_state(InFunction(true).and(InConstructor(false)), |p| {
-		parse_block_impl(p, JS_FUNCTION_BODY)
-	})
+	p.with_state(
+		InFunction(true)
+			.and(InConstructor(false))
+			.and(NewScopedBlock),
+		|p| parse_block_impl(p, JS_FUNCTION_BODY),
+	)
 }
 
 // TODO 1725 This is probably not ideal (same with the `declare` keyword). We should
@@ -195,7 +199,7 @@ pub(super) fn function_body(p: &mut Parser) -> ParsedSyntax {
 pub(super) fn function_body_or_declaration(p: &mut Parser) {
 	// omitting the body is allowed in ts
 	if p.typescript() && !p.at(T!['{']) && is_semi(p, 0) {
-		p.state.bindings_blocks.leave_block();
+		// p.state.bindings_blocks.leave_block();
 		p.eat(T![;]);
 	} else {
 		let body = function_body(p);

@@ -10,7 +10,7 @@ use crate::parser::{ParseNodeList, ParsedSyntax, ParserProgress};
 use crate::parser::{RecoveryError, RecoveryResult};
 use crate::state::{
 	AllowObjectExpression, BreakAllowed, ChangeParserState, ContinueAllowed, EnableStrictMode,
-	EnableStrictModeSnapshot, IncludeIn, StrictMode as StrictModeState,
+	EnableStrictModeSnapshot, IncludeIn, NewScopedBlock, StrictMode as StrictModeState,
 };
 use crate::syntax::assignment::{expression_to_assignment_pattern, AssignmentExprPrecedence};
 use crate::syntax::class::{parse_class_statement, parse_initializer_clause};
@@ -487,7 +487,7 @@ pub fn parse_empty_statement(p: &mut Parser) -> ParsedSyntax {
 // let a; { let a; }
 /// A block statement consisting of statements wrapped in curly brackets.
 pub(crate) fn parse_block_stmt(p: &mut Parser) -> ParsedSyntax {
-	parse_block_impl(p, JS_BLOCK_STATEMENT)
+	p.with_state(NewScopedBlock, |p| parse_block_impl(p, JS_BLOCK_STATEMENT))
 }
 
 /// A block wrapped in curly brackets. Can either be a function body or a block statement.
@@ -495,7 +495,6 @@ pub(super) fn parse_block_impl(p: &mut Parser, block_kind: JsSyntaxKind) -> Pars
 	if !p.at(T!['{']) {
 		return Absent;
 	}
-	p.state.bindings_blocks.enter_block();
 
 	let m = p.start();
 	p.bump(T!['{']);
@@ -513,7 +512,7 @@ pub(super) fn parse_block_impl(p: &mut Parser, block_kind: JsSyntaxKind) -> Pars
 	if let Some(strict_snapshot) = strict_snapshot {
 		EnableStrictMode::restore(&mut p.state, strict_snapshot);
 	}
-	p.state.bindings_blocks.leave_block();
+	// p.state.bindings_blocks.leave_block();
 
 	Present(m.complete(p, block_kind))
 }
@@ -1128,7 +1127,8 @@ fn parse_for_head(p: &mut Parser) -> JsSyntaxKind {
 		return JS_FOR_STATEMENT;
 	}
 
-	p.state.bindings_blocks.enter_block();
+	// p.state.bindings_blocks.enter_block();
+	let p = &mut *p.with_scoped_state(NewScopedBlock);
 
 	// `for (let...` | `for (const...` | `for (var...`
 
@@ -1164,7 +1164,6 @@ fn parse_for_head(p: &mut Parser) -> JsSyntaxKind {
 		} else {
 			m.complete(p, JS_VARIABLE_DECLARATIONS);
 			parse_normal_for_head(p);
-			p.state.bindings_blocks.leave_block();
 			JS_FOR_STATEMENT
 		}
 	} else {
@@ -1201,7 +1200,6 @@ fn parse_for_head(p: &mut Parser) -> JsSyntaxKind {
 		init_expr.or_add_diagnostic(p, js_parse_error::expected_expression);
 
 		parse_normal_for_head(p);
-		p.state.bindings_blocks.leave_block();
 		JS_FOR_STATEMENT
 	}
 }
@@ -1229,14 +1227,12 @@ fn parse_for_of_or_in_head(p: &mut Parser) -> JsSyntaxKind {
 	if is_in {
 		p.bump_any();
 		parse_expression(p).or_add_diagnostic(p, js_parse_error::expected_expression);
-		p.state.bindings_blocks.leave_block();
 		JS_FOR_IN_STATEMENT
 	} else {
 		p.bump_remap(T![of]);
 
 		parse_expr_or_assignment(p)
 			.or_add_diagnostic(p, js_parse_error::expected_expression_assignment);
-		p.state.bindings_blocks.leave_block();
 		JS_FOR_OF_STATEMENT
 	}
 }
@@ -1357,9 +1353,9 @@ fn parse_switch_clause(
 	first_default: &mut Option<CompletedMarker>,
 ) -> ParsedSyntax {
 	let m = p.start();
+	let p = &mut *p.with_scoped_state(NewScopedBlock);
 	match p.cur() {
 		T![default] => {
-			p.state.bindings_blocks.enter_block();
 			// in case we have two `default` expression, we mark the second one
 			// as `JS_CASE_CLAUSE` where the the "default" keyword is an Unknown node
 			let syntax_kind = if first_default.is_some() {
@@ -1389,17 +1385,14 @@ fn parse_switch_clause(
 				p.error(err);
 			}
 
-			p.state.bindings_blocks.leave_block();
 			Present(default)
 		}
 		T![case] => {
-			p.state.bindings_blocks.enter_block();
 			p.bump_any();
 			parse_expression(p).or_add_diagnostic(p, js_parse_error::expected_expression);
 			p.expect(T![:]);
 
 			SwitchClausesList.parse_list(p);
-			p.state.bindings_blocks.leave_block();
 			Present(m.complete(p, JS_CASE_CLAUSE))
 		}
 		_ => {
