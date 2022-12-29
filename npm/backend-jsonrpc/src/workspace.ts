@@ -458,6 +458,10 @@ export interface Nursery {
 	 */
 	useHookAtTopLevel?: RuleConfiguration;
 	/**
+	 * Put your description here
+	 */
+	useHookNamingConvention?: RuleConfiguration;
+	/**
 	 * Enforces the usage of the attribute title for the element iframe
 	 */
 	useIframeTitle?: RuleConfiguration;
@@ -799,6 +803,7 @@ export type Category =
 	| "lint/nursery/noNoninteractiveElementToInteractiveRole"
 	| "lint/nursery/useValidForDirection"
 	| "lint/nursery/useHookAtTopLevel"
+	| "lint/nursery/useHookNamingConvention"
 	| "lint/performance/noDelete"
 	| "lint/security/noDangerouslySetInnerHtml"
 	| "lint/security/noDangerouslySetInnerHtmlWithChildren"

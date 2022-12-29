@@ -1046,6 +1046,17 @@
             }
           ]
         },
+        "useHookNamingConvention": {
+          "description": "Put your description here",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RuleConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "useIframeTitle": {
           "description": "Enforces the usage of the attribute title for the element iframe",
           "anyOf": [

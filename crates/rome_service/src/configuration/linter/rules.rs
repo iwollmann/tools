@@ -813,6 +813,8 @@ struct NurserySchema {
     use_exponentiation_operator: Option<RuleConfiguration>,
     #[doc = "Enforce that all React hooks are being called from the Top Level component functions."]
     use_hook_at_top_level: Option<RuleConfiguration>,
+    #[doc = "Put your description here"]
+    use_hook_naming_convention: Option<RuleConfiguration>,
     #[doc = "Enforces the usage of the attribute title for the element iframe"]
     use_iframe_title: Option<RuleConfiguration>,
     #[doc = "Require calls to isNaN() when checking for NaN."]
@@ -828,7 +830,7 @@ struct NurserySchema {
 }
 impl Nursery {
     const CATEGORY_NAME: &'static str = "nursery";
-    pub(crate) const CATEGORY_RULES: [&'static str; 47] = [
+    pub(crate) const CATEGORY_RULES: [&'static str; 48] = [
         "noAccessKey",
         "noAssignInExpressions",
         "noBannedTypes",
@@ -870,6 +872,7 @@ impl Nursery {
         "useExhaustiveDependencies",
         "useExponentiationOperator",
         "useHookAtTopLevel",
+        "useHookNamingConvention",
         "useIframeTitle",
         "useIsNan",
         "useMediaCaption",
@@ -950,12 +953,12 @@ impl Nursery {
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[36]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[37]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[38]),
-        RuleFilter::Rule("nursery", Self::CATEGORY_RULES[41]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[42]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[43]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[44]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[45]),
         RuleFilter::Rule("nursery", Self::CATEGORY_RULES[46]),
+        RuleFilter::Rule("nursery", Self::CATEGORY_RULES[47]),
     ];
     pub(crate) fn is_recommended(&self) -> bool { !matches!(self.recommended, Some(false)) }
     pub(crate) fn get_enabled_rules(&self) -> IndexSet<RuleFilter> {
